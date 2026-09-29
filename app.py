@@ -1,3 +1,6 @@
+import html
+import uuid
+
 import streamlit as st
 
 
@@ -6,7 +9,7 @@ import streamlit as st
 # =========================================================
 
 st.set_page_config(
-    page_title="AI To-Do List",
+    page_title="My To-Do List",
     page_icon="💜",
     layout="centered"
 )
@@ -236,19 +239,23 @@ if "tasks" not in st.session_state:
     st.session_state.tasks = []
 
 
+def completed_card(name):
+    """Return the HTML for a completed task, with the text escaped."""
+    return f"""
+    <div class="completed-card">
+        ✓ &nbsp; {html.escape(name)}
+    </div>
+    """
+
+
 # =========================================================
 # HEADER
 # =========================================================
 
 st.markdown("""
 <div class="header">
-
     <h1>💜 My To-Do List</h1>
-
-    <p>
-        Get organised. Get things done. ✨
-    </p>
-
+    <p>Get organised. Get things done. ✨</p>
 </div>
 """, unsafe_allow_html=True)
 
@@ -258,51 +265,27 @@ st.markdown("""
 # =========================================================
 
 total_tasks = len(st.session_state.tasks)
-
-completed_count = sum(
-    1
-    for task in st.session_state.tasks
-    if task["completed"]
-)
-
+completed_count = sum(1 for t in st.session_state.tasks if t["completed"])
 
 col1, col2 = st.columns(2)
 
-
 with col1:
-
     st.markdown(
         f"""
         <div class="stat-card">
-
-            <div class="stat-number">
-                {total_tasks}
-            </div>
-
-            <div class="stat-label">
-                📋 TOTAL TASKS
-            </div>
-
+            <div class="stat-number">{total_tasks}</div>
+            <div class="stat-label">📋 TOTAL TASKS</div>
         </div>
         """,
         unsafe_allow_html=True
     )
 
-
 with col2:
-
     st.markdown(
         f"""
         <div class="stat-card">
-
-            <div class="stat-number">
-                {completed_count}
-            </div>
-
-            <div class="stat-label">
-                ✅ COMPLETED
-            </div>
-
+            <div class="stat-number">{completed_count}</div>
+            <div class="stat-label">✅ COMPLETED</div>
         </div>
         """,
         unsafe_allow_html=True
@@ -315,43 +298,26 @@ with col2:
 
 st.markdown("## ➕ Add a Task")
 
-
 # Using a form allows the input to reset after submission.
-
 with st.form("add_task_form", clear_on_submit=True):
-
     new_task = st.text_input(
         "Task",
         placeholder="What do you need to get done?",
         label_visibility="collapsed"
     )
-
-    add_task = st.form_submit_button(
-        "✨ Add Task",
-        use_container_width=True
-    )
-
+    add_task = st.form_submit_button("✨ Add Task", use_container_width=True)
 
 if add_task:
-
     if new_task.strip():
-
-        st.session_state.tasks.append(
-            {
-                "name": new_task.strip(),
-                "completed": False
-            }
-        )
-
-        st.success("Task added! 🎉")
-
+        st.session_state.tasks.append({
+            "id": uuid.uuid4().hex,
+            "name": new_task.strip(),
+            "completed": False
+        })
+        st.toast("Task added! 🎉")   # toast survives the rerun
         st.rerun()
-
     else:
-
-        st.warning(
-            "Please enter a task first."
-        )
+        st.warning("Please enter a task first.")
 
 
 # =========================================================
@@ -360,133 +326,67 @@ if add_task:
 
 st.markdown("## 📋 Your Tasks")
 
-
-# Three task views
-
-tab_all, tab_active, tab_completed = st.tabs(
-    [
-        f"All ({total_tasks})",
-        f"Active ({total_tasks - completed_count})",
-        f"Completed ({completed_count})"
-    ]
-)
+tab_all, tab_active, tab_completed = st.tabs([
+    f"All ({total_tasks})",
+    f"Active ({total_tasks - completed_count})",
+    f"Completed ({completed_count})"
+])
 
 
-# =========================================================
-# ALL TASKS
-# =========================================================
-
+# ---------- ALL TASKS ----------
 with tab_all:
-
     if not st.session_state.tasks:
-
-        st.info(
-            "✨ No tasks yet. Add your first task above!"
-        )
-
+        st.info("✨ No tasks yet. Add your first task above!")
     else:
-
-        for i, task in enumerate(
-            st.session_state.tasks
-        ):
-
+        for task in st.session_state.tasks:
             if task["completed"]:
-
-                st.markdown(
-                    f"""
-                    <div class="completed-card">
-                        ✓ &nbsp; {task["name"]}
-                    </div>
-                    """,
-                    unsafe_allow_html=True
-                )
-
+                st.markdown(completed_card(task["name"]), unsafe_allow_html=True)
             else:
-
                 checked = st.checkbox(
                     task["name"],
                     value=False,
-                    key=f"all_task_{i}"
+                    key=f"all_{task['id']}"
                 )
-
                 if checked:
-
-                    st.session_state.tasks[i][
-                        "completed"
-                    ] = True
-
+                    task["completed"] = True
                     st.rerun()
 
 
-# =========================================================
-# ACTIVE TASKS
-# =========================================================
-
+# ---------- ACTIVE TASKS ----------
 with tab_active:
-
-    active_tasks = [
-        (i, task)
-        for i, task in enumerate(
-            st.session_state.tasks
-        )
-        if not task["completed"]
-    ]
+    active_tasks = [t for t in st.session_state.tasks if not t["completed"]]
 
     if not active_tasks:
-
-        st.success(
-            "🎉 You have no active tasks!"
-        )
-
+        st.success("🎉 You have no active tasks!")
     else:
-
-        for i, task in active_tasks:
-
+        for task in active_tasks:
             checked = st.checkbox(
                 task["name"],
                 value=False,
-                key=f"active_task_{i}"
+                key=f"active_{task['id']}"
             )
-
             if checked:
-
-                st.session_state.tasks[i][
-                    "completed"
-                ] = True
-
+                task["completed"] = True
                 st.rerun()
 
 
-# =========================================================
-# COMPLETED TASKS
-# =========================================================
-
+# ---------- COMPLETED TASKS ----------
 with tab_completed:
+    done_tasks = [t for t in st.session_state.tasks if t["completed"]]
 
-    completed_tasks = [
-        task
-        for task in st.session_state.tasks
-        if task["completed"]
-    ]
-
-    if not completed_tasks:
-
-        st.info(
-            "📭 No completed tasks yet."
-        )
-
+    if not done_tasks:
+        st.info("📭 No completed tasks yet.")
     else:
-
-        for task in completed_tasks:
-
-            st.markdown(
-                f"""
-                <div class="completed-card">
-                    ✓ &nbsp; {task["name"]}
-                </div>
-                """,
-                unsafe_allow_html=True
+        for task in done_tasks:
+            # ticked checkbox: untick it to move the task back to Active
+            still_done = st.checkbox(
+                task["name"],
+                value=True,
+                key=f"done_{task['id']}"
             )
+            if not still_done:
+                task["completed"] = False
+                st.rerun()
 
 
 # =========================================================
@@ -495,31 +395,13 @@ with tab_completed:
 
 st.markdown("## 📊 Your Progress")
 
-
-if total_tasks > 0:
-
-    progress = (
-        completed_count / total_tasks
-    )
-
-else:
-
-    progress = 0
-
-
+progress = completed_count / total_tasks if total_tasks > 0 else 0
 st.progress(progress)
-
 
 st.markdown(
     f"""
-    <div style="
-        text-align: center;
-        color: #826E8B;
-        margin-top: -8px;
-    ">
-        <strong>{completed_count}</strong>
-        of
-        <strong>{total_tasks}</strong>
+    <div style="text-align: center; color: #826E8B; margin-top: -8px;">
+        <strong>{completed_count}</strong> of <strong>{total_tasks}</strong>
         tasks completed
     </div>
     """,
@@ -532,18 +414,10 @@ st.markdown(
 # =========================================================
 
 if completed_count > 0:
-
-    if st.button(
-        "🗑️ Delete Completed Tasks",
-        use_container_width=True
-    ):
-
+    if st.button("🗑️ Delete Completed Tasks", use_container_width=True):
         st.session_state.tasks = [
-            task
-            for task in st.session_state.tasks
-            if not task["completed"]
+            t for t in st.session_state.tasks if not t["completed"]
         ]
-
         st.rerun()
 
 
@@ -553,42 +427,24 @@ if completed_count > 0:
 
 st.markdown("""
 <div class="ai-box">
-
     <h2>🤖 AI Planner</h2>
-
     <p>
         Tell your AI assistant what you want to accomplish,
         and it will help break your goal into smaller tasks.
     </p>
-
 </div>
 """, unsafe_allow_html=True)
 
-
 with st.form("ai_planner_form"):
-
     goal = st.text_input(
         "Your goal",
         placeholder="e.g. Prepare for my Python exam",
         label_visibility="collapsed"
     )
-
-    plan_button = st.form_submit_button(
-        "✨ Plan It",
-        use_container_width=True
-    )
-
+    plan_button = st.form_submit_button("✨ Plan It", use_container_width=True)
 
 if plan_button:
-
     if goal.strip():
-
-        st.info(
-            "🤖 AI planning will be connected here next!"
-        )
-
+        st.info("🤖 AI planning will be connected here next!")
     else:
-
-        st.warning(
-            "Tell me what you want to accomplish first."
-        )
+        st.warning("Tell me what you want to accomplish first.")
