@@ -1,0 +1,62 @@
+tasks = []
+
+
+def add_task():
+    task = input("Enter your task: ")
+
+    tasks.append({
+        "name": task,
+        "completed": False
+    })
+
+    print("✅ Task added!")
+
+
+def view_tasks():
+    print("\nYour tasks:")
+
+    if len(tasks) == 0:
+        print("No tasks yet.")
+    else:
+        for number, task in enumerate(tasks, 1):
+            if task["completed"]:
+                print(f"{number}. ☑️ {task['name']}")
+            else:
+                print(f"{number}. ☐ {task['name']}")
+
+
+def complete_task():
+    view_tasks()
+
+    if len(tasks) > 0:
+        task_number = int(input("Which task did you complete? "))
+
+        tasks[task_number - 1]["completed"] = True
+
+        print("🎉 Task completed!")
+
+
+while True:
+    print("\n--- MY AI TODO LIST ---")
+    print("1. Add a task")
+    print("2. View tasks")
+    print("3. Complete a task")
+    print("4. Exit")
+
+    choice = input("Choose an option: ")
+
+    if choice == "1":
+        add_task()
+
+    elif choice == "2":
+        view_tasks()
+
+    elif choice == "3":
+        complete_task()
+
+    elif choice == "4":
+        print("Goodbye! 👋")
+        break
+
+    else:
+        print("❌ Invalid option.")
